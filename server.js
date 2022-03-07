@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import 'dotenv/config';
 import cors from 'cors';
+import { taskRoutes } from './api/routes/index.js';
 
 /**
  * Mongoose
@@ -24,6 +25,9 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// routes
+app.use('/api', taskRoutes);
 
 // Launch server
 const PORT = process.env.PORT || 5000;

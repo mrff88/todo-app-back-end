@@ -23,10 +23,12 @@ export const createTask = async (request, response) => {
 };
 //Controller to update a task
 export const updateTask = async (request, response) => {
-  const taskToUpdate = request.body;
-  const { task } = request.data;
+  const taskValueToUpdate = request.body;
+  const { id: idTask } = request.params;
   try {
-    Task.updateOne(task, taskToUpdate, (error, updatedTask) => {
+    const task = await Task.findById(idTask);
+    taskValueToUpdate.updatedAt = new Date();
+    Task.updateOne(task, taskValueToUpdate, (error, updatedTask) => {
       !error
         ? response.status(200).json(updatedTask)
         : response.status(500).send(error);
@@ -37,7 +39,7 @@ export const updateTask = async (request, response) => {
 };
 
 //Controller to delete a task
-export const deleteTask = async (response, request) => {
+export const deleteTask = async (request, response) => {
   const { id: idTask } = request.params;
   try {
     const taskToDelete = await Task.findById(idTask);
