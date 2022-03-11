@@ -21,6 +21,7 @@ export const createTask = async (request, response) => {
     response.status(500).json({ error });
   }
 };
+
 //Controller to update a task
 export const updateTask = async (request, response) => {
   const taskValueToUpdate = request.body;

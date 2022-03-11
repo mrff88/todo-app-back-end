@@ -2,7 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import 'dotenv/config';
 import cors from 'cors';
-import { taskRoutes } from './api/routes/index.js';
+import { taskRoutes, userRoutes } from './api/routes/index.js';
 
 /**
  * Mongoose
@@ -28,6 +28,7 @@ app.use(express.json());
 
 // routes
 app.use('/api', taskRoutes);
+app.use('/api', userRoutes);
 
 // Launch server
 const PORT = process.env.PORT || 5000;
