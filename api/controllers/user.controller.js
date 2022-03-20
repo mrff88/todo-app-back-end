@@ -39,7 +39,7 @@ export const createUser = async (request, response) => {
       token: crypto.randomBytes(32).toString('hex'),
     }).save();
 
-    const url = `${process.env.BASE_URL}users/${user._id}/verify/${token.token}`;
+    const url = `${process.env.FRONT_END_BASE_URL}verify-email/users/${user._id}/verify/${token.token}`;
 
     // Send email
     emailSender.config = {
@@ -66,8 +66,7 @@ export const createUser = async (request, response) => {
 
 // Controller to verify user
 export const verify = async (request, response) => {
-  const { id, token } = request.body;
-
+  const { id, token } = request.params;
   try {
     const userFound = await User.findOne({ _id: id });
     if (!userFound)
@@ -81,7 +80,7 @@ export const verify = async (request, response) => {
       return response.status(400).send({ message: 'Invalid link' });
 
     await User.updateOne({ _id: userFound._id }, { verified: true });
-    await token.remove();
+    await tokenFound.remove();
 
     response.status(200).send({ message: 'Email verified successfully' });
   } catch (error) {
@@ -102,7 +101,7 @@ export const login = async (request, response) => {
 
     //Validate hash
     const passToHash = `${password}${userFound.email}`;
-    const validPassword = bcrypt.compare(passToHash, userFound.password);
+    const validPassword = await bcrypt.compare(passToHash, userFound.password);
     if (!validPassword)
       return response
         .status(401)
@@ -115,7 +114,7 @@ export const login = async (request, response) => {
           userId: userFound._id,
           token: crypto.randomBytes(32).toString('hex'),
         }).save();
-        const url = `${process.env.BASE_URL}users/${userFound._id}/verify/${newToken.token}`;
+        const url = `${process.env.FRONT_END_BASE_URL}users/${userFound._id}/verify/${newToken.token}`;
 
         // Send email
         emailSender.config = {
