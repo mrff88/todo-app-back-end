@@ -133,7 +133,7 @@ export const login = async (request, response) => {
           text: `Please, verify your account with the following link: ${url}`,
         });
       }
-      return res
+      return response
         .status(400)
         .send({ message: 'An Email sent to your account please verify' });
     }
@@ -153,5 +153,104 @@ export const login = async (request, response) => {
     );
   } catch (error) {
     response.status(500).send({ message: 'Internal server error' });
+  }
+};
+
+// Controller to send password change link
+export const sendPasswordChangeLink = async (request, response) => {
+  const { email } = request.body;
+
+  try {
+    const userFound = await User.findOne({ email: email });
+    if (!userFound)
+      return response
+        .status(409)
+        .send({ message: 'User with given email does not exist!' });
+
+    let token = await Token.findOne({ userId: userFound._id });
+    if (!token) {
+      token = await new Token({
+        userId: userFound._id,
+        token: crypto.randomBytes(32).toString('hex'),
+      }).save();
+    }
+
+    const url = `${process.env.FRONT_END_BASE_URL}change-password/${userFound._id}/${token.token}/`;
+    // Send email
+    emailSender.config = {
+      host: process.env.HOST,
+      port: process.env.EMAIL_PORT,
+      secure: process.env.SECURE,
+      auth: {
+        user: 'apikey',
+        pass: process.env.SENDGRID_API_KEY,
+      },
+    };
+    await emailSender.sendMail({
+      from: process.env.SENDER_EMAIL_ADDRESS,
+      to: userFound.email,
+      subject: 'Password Change',
+      text: `Use the following link to change your password:\n${url}`,
+    });
+
+    response
+      .status(200)
+      .send({ message: 'Password reset link sent to your email account' });
+  } catch (error) {
+    response.status(500).send({ message: 'Internal server error' });
+  }
+};
+
+// Controller to verify password change link
+export const verifyPasswordChangeLink = async (request, response) => {
+  const { id, token } = request.params;
+
+  try {
+    const userFound = await User.findOne({ _id: id });
+    if (!userFound)
+      return response.status(400).send({ message: 'Invalid link' });
+
+    const tokenFound = await Token.findOne({
+      userId: userFound._id,
+      token: token,
+    });
+    if (!tokenFound)
+      return response.status(400).send({ message: 'Invalid link' });
+
+    response.status(200).send({ message: 'Valid Url' });
+  } catch (error) {
+    response.status(500).send({ message: 'Internal Server Error' });
+  }
+};
+
+// Controller to change user password
+export const changeUserPassword = async (request, response) => {
+  const { id, token } = request.params;
+  const { password } = request.body;
+
+  try {
+    const userFound = await User.findOne({ _id: id });
+    if (!userFound)
+      return response.status(400).send({ message: 'Invalid link' });
+
+    const tokenFound = await Token.findOne({
+      userId: userFound._id,
+      token: token,
+    });
+    if (!tokenFound)
+      return response.status(400).send({ message: 'Invalid link' });
+
+    if (!userFound.verified) userFound.verified = true;
+
+    const passToHash = `${password}${userFound.email}`;
+    const hashPassword = await bcrypt.hash(passToHash, 10);
+
+    userFound.password = hashPassword;
+    await userFound.save();
+    await tokenFound.remove();
+
+    response.status(200).send({ message: 'Password reset successfully' });
+  } catch (error) {
+    response.status(500).send({ message: 'Internal Server Error' });
   }
 };
